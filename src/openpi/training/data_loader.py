@@ -13,6 +13,7 @@ import torch
 import openpi.models.model as _model
 import openpi.training.config as _config
 from openpi.training.droid_rlds_dataset import DroidRldsDataset
+from openpi.training.robust_lerobot_dataset import RobustLeRobotDataset
 import openpi.transforms as _transforms
 
 T_co = TypeVar("T_co", covariant=True)
@@ -140,7 +141,8 @@ def create_torch_dataset(
     
     # Note: We don't pass episodes to LeRobotDataset due to a bug in lerobot's episode filtering.
     # Instead, we load all episodes and filter afterwards using Subset.
-    dataset = lerobot_dataset.LeRobotDataset(
+    # Use RobustLeRobotDataset which handles edge cases in video frame loading
+    dataset = RobustLeRobotDataset(
         data_config.repo_id,
         root=data_config.local_root,
         delta_timestamps={
