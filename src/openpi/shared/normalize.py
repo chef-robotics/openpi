@@ -129,7 +129,13 @@ def serialize_json(norm_stats: dict[str, NormStats]) -> str:
 
 def deserialize_json(data: str) -> dict[str, NormStats]:
     """Deserialize the running statistics from a JSON string."""
-    return _NormStatsDict(**json.loads(data)).norm_stats
+    loaded_data = json.loads(data)
+    # Filter out any keys ending with _metadata as they contain metadata, not normalization stats
+    if "norm_stats" in loaded_data:
+        loaded_data["norm_stats"] = {
+            key: value for key, value in loaded_data["norm_stats"].items() if not key.endswith("_metadata")
+        }
+    return _NormStatsDict(**loaded_data).norm_stats
 
 
 def save(directory: pathlib.Path | str, norm_stats: dict[str, NormStats]) -> None:
