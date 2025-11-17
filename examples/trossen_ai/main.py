@@ -29,6 +29,8 @@ from lerobot.robots.bi_widowxai_follower.config_bi_widowxai_follower import BiWi
 from lerobot.cameras.realsense.configuration_realsense import RealSenseCameraConfig
 from collections import defaultdict
 from scipy.interpolate import PchipInterpolator
+from pathlib import Path
+import json
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -43,7 +45,8 @@ class TrossenOpenPIBridge:
         policy_server_port: int = 8000,
         control_frequency: int = 30,
         test_mode: str = "autonomous",  # "autonomous" or "test"
-        max_steps: int = 1000
+        max_steps: int = 1000,
+        norm_stats_path: str | None = None
     ):
         self.control_frequency = control_frequency
         self.max_steps = max_steps
@@ -98,6 +101,53 @@ class TrossenOpenPIBridge:
         self.action_buffer_size = self.max_steps + self.action_chunk_size  # Buffer size to hold actions for the entire episode
 
         self.action_dim = len(self.robot._joint_ft)  # 7 joints per arm * 2 arms
+        
+        # Load gripper transformation metadata from norm_stats if provided
+        self.gripper_indices = None
+        self.gripper_range = None
+        if norm_stats_path is not None:
+            self._load_gripper_metadata(norm_stats_path)
+
+    def _load_gripper_metadata(self, norm_stats_path: str):
+        """Load gripper transformation metadata from norm_stats.json."""
+        try:
+            stats_file = Path(norm_stats_path)
+            if not stats_file.exists():
+                logger.warning(f"Norm stats file not found at {norm_stats_path}")
+                return
+            
+            with open(stats_file, 'r') as f:
+                norm_stats = json.load(f)
+            
+            if "gripper_metadata" in norm_stats["norm_stats"]:
+                metadata = norm_stats["norm_stats"]["gripper_metadata"]
+                self.gripper_indices = metadata["indices"]
+                self.gripper_range = tuple(metadata["physical_range"])
+                logger.info(f"Loaded gripper transformation: indices={self.gripper_indices}, range={self.gripper_range}")
+            else:
+                logger.info("No gripper transformation metadata found in norm_stats")
+        except Exception as e:
+            logger.error(f"Error loading gripper metadata: {e}")
+
+    def reverse_gripper_transform(self, actions: np.ndarray) -> np.ndarray:
+        """Transform gripper joints from [1, 0] range back to physical range.
+        
+        Args:
+            actions: Array of action values with shape (..., num_joints)
+        
+        Returns:
+            Transformed actions where gripper joints are mapped back to physical range
+        """
+        if self.gripper_indices is None or self.gripper_range is None:
+            return actions
+        
+        actions = actions.copy()
+        min_val, max_val = self.gripper_range
+        for idx in self.gripper_indices:
+            # Map [1, 0] -> [min_val, max_val]
+            # 1 -> closed (min_val), 0 -> open (max_val)
+            actions[..., idx] = min_val + (1.0 - actions[..., idx]) * (max_val - min_val)
+        return actions
 
     def execute_action(self, action: np.ndarray):
         """Execute action on the arm."""
@@ -200,6 +250,10 @@ class TrossenOpenPIBridge:
                     a_t = np.average(candidates, axis=0, weights=weights)  # shape: (14,)
             else:
                 a_t = self.current_action_chunk[self.action_chunk_idx]
+            
+            # Apply reverse gripper transformation to convert from [1, 0] to physical range
+            a_t = self.reverse_gripper_transform(a_t)
+            
             # Execute the current action
             if is_first_step:
                 logger.info("Moving to start position to avoid large jumps...")
@@ -248,6 +302,7 @@ if __name__ == "__main__":
                         help="Operation mode: autonomous (execute) or test (no movement)")
     parser.add_argument("--task_prompt", default="move the arm to the left", help="Task description for the policy")
     parser.add_argument("--max_steps", type=int, default=1000, help="Maximum steps per episode")
+    parser.add_argument("--norm_stats_path", default=None, help="Path to norm_stats.json file for gripper transformation")
     args = parser.parse_args()
 
     bridge = TrossenOpenPIBridge(
@@ -255,7 +310,8 @@ if __name__ == "__main__":
         policy_server_port=args.policy_port,
         control_frequency=args.control_freq,
         test_mode=args.mode,
-        max_steps=args.max_steps
+        max_steps=args.max_steps,
+        norm_stats_path=args.norm_stats_path
     )
 
     bridge.autonomous_mode(task_prompt=args.task_prompt)

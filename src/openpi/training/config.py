@@ -688,7 +688,7 @@ _CONFIGS = [
             adapt_to_pi=False,
             repo_id="sandi/lettuce-sandwich",
             base_config=DataConfig(
-                local_root="/home/sherrychen/ChefResearch/sandi/datasets/sandi/lettuce-sandwich",
+                local_root="/opt/data/sandi/lettuce-sandwich",
                 prompt_from_task=True,
             ),
             assets=AssetsConfig(
@@ -727,11 +727,11 @@ _CONFIGS = [
         name="pi0_lettuce_sandwich_2p2",
         model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
         data=LeRobotAlohaDataConfig(
-            use_delta_joint_actions=False,
+            use_delta_joint_actions=True,
             adapt_to_pi=False,
             repo_id="sandi/lettuce-sandwich",
             base_config=DataConfig(
-                local_root="/home/sherrychen/ChefResearch/sandi/datasets/sandi/lettuce-sandwich",
+                local_root="/opt/data/sandi/lettuce-sandwich",
                 prompt_from_task=True,
                 episodes=[
                     26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
@@ -827,7 +827,7 @@ _CONFIGS = [
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
             repo_id="sandi/lettuce-sandwich",
             base_config=DataConfig(
-                local_root="/home/sherrychen/ChefResearch/sandi/datasets/sandi/lettuce-sandwich",
+                local_root="/opt/data/sandi/lettuce-sandwich",
                 prompt_from_task=True,
                 episodes=[
                     26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
