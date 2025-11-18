@@ -1005,7 +1005,9 @@ _CONFIGS = [
                     _transforms.RepackTransform(
                         {
                             "images": {
-                                "cam_low": "observation.images.cam_low",
+                                # Unfortunately we have to call "cam_low" as "cam_high" because
+                                # aloha_policy expects cam_high as the base image.
+                                "cam_high": "observation.images.cam_low",
                                 "cam_left_wrist": "observation.images.cam_left_wrist",
                                 "cam_right_wrist": "observation.images.cam_right_wrist",
                             },
