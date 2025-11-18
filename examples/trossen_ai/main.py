@@ -64,19 +64,19 @@ class TrossenOpenPIBridge:
             id="bimanual_follower",
             cameras={
                 "cam_high": RealSenseCameraConfig(
-                    serial_number_or_name="230322270292",
+                    serial_number_or_name="218622270304",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "cam_low": RealSenseCameraConfig(
-                    serial_number_or_name="230322271134",
+                    serial_number_or_name="130322272628",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "cam_right_wrist": RealSenseCameraConfig(
-                    serial_number_or_name="230422272861",
+                    serial_number_or_name="128422271347",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "cam_left_wrist": RealSenseCameraConfig(
-                    serial_number_or_name="230322270548",
+                    serial_number_or_name="218622274938",
                     width=640, height=480, fps=30, use_depth=False
                 ),
             }
@@ -247,7 +247,7 @@ if __name__ == "__main__":
     parser.add_argument("--mode", choices=["autonomous", "test"],  default="autonomous",
                         help="Operation mode: autonomous (execute) or test (no movement)")
     parser.add_argument("--task_prompt", default="move the arm to the left", help="Task description for the policy")
-    parser.add_argument("--max_steps", type=int, default=3600, help="Maximum steps per episode")
+    parser.add_argument("--max_steps", type=int, default=1000, help="Maximum steps per episode")
     args = parser.parse_args()
 
     bridge = TrossenOpenPIBridge(
