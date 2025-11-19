@@ -9,12 +9,14 @@ Handles:
 3. Receiving action predictions
 4. Executing actions on the arm
 5. Real-time skill switching via keyboard input (0-9)
+6. Recording episodes to LeRobotDataset (optional)
 
 Features:
 - Loads skill instructions from a JSONL tasks file
 - During execution, press 0-9 to switch to corresponding skill
 - Current instruction is logged when requesting new action chunks
 - Skill changes take effect on the next policy inference
+- Optional dataset recording with resume and push-to-hub support
 
 Usage:
     python main_skills.py --mode autonomous --tasks_file path/to/tasks.jsonl
@@ -22,8 +24,13 @@ Usage:
     Test mode (no movement):
     python main_skills.py --mode test --tasks_file path/to/tasks.jsonl
 
-    Example:
-    python main_skills.py --mode autonomous --tasks_file sandi/datasets/sandi/lettuce-sandwich-skills/meta/tasks.jsonl
+    Example with dataset recording:
+    python main_skills.py --mode autonomous --tasks_file sandi/datasets/sandi/lettuce-sandwich-skills/meta/tasks.jsonl \
+        --repo_id your_username/dataset_name --root ./data
+
+    Resume recording to existing dataset:
+    python main_skills.py --mode autonomous --tasks_file sandi/datasets/sandi/lettuce-sandwich-skills/meta/tasks.jsonl \
+        --repo_id your_username/dataset_name --root ./data --resume
 
 Tasks file format (JSONL):
     {"task_index": 0, "task": "Pick up one slice of bread."}
@@ -38,18 +45,22 @@ import logging
 import time
 import sys
 import os
+from dataclasses import dataclass, field
 import numpy as np
 from openpi_client import websocket_client_policy
 import cv2
 from lerobot.robots import make_robot_from_config
 from lerobot.robots.bi_widowxai_follower.config_bi_widowxai_follower import BiWidowXAIFollowerConfig
 from lerobot.cameras.realsense.configuration_realsense import RealSenseCameraConfig
+from lerobot.datasets.lerobot_dataset import LeRobotDataset
+from lerobot.datasets.utils import build_dataset_frame, hw_to_dataset_features
 from collections import defaultdict
 from scipy.interpolate import PchipInterpolator
 import select
 import tty
 import termios
 import json
+import traceback
 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -83,7 +94,6 @@ def load_skill_instructions(tasks_file: str) -> list:
     logger.info(f"Loaded {len(skill_instructions)} skills from {tasks_file}")
     return skill_instructions
 
-
 class TrossenOpenPIBridge:
     """Bridge between a Trossen AI Stationary Kit and OpenPI policy server."""
 
@@ -94,13 +104,24 @@ class TrossenOpenPIBridge:
         policy_server_port: int = 8000,
         control_frequency: int = 30,
         test_mode: str = "autonomous",  # "autonomous" or "test"
-        max_steps: int = 1000
+        max_steps: int = 1000,
+        repo_id: str = None,
+        root: str = None,
+        resume: bool = False,
+        push_to_hub: bool = False,
+        use_videos: bool = True,
+        num_image_writer_processes: int = 0,
+        num_image_writer_threads_per_camera: int = 4
     ):
         self.control_frequency = control_frequency
         self.max_steps = max_steps
         self.dt = 1.0 / control_frequency
         self.test_mode = test_mode
         self.skill_instructions = skill_instructions
+
+        # LeRobotDataset arguments
+        self.repo_id = repo_id
+        self.push_to_hub = push_to_hub
 
         logger.info(f"Connecting to policy server at {policy_server_host}:{policy_server_port}")
         self.policy_client = websocket_client_policy.WebsocketClientPolicy(
@@ -116,24 +137,54 @@ class TrossenOpenPIBridge:
             id="bimanual_follower",
             cameras={
                 "cam_high": RealSenseCameraConfig(
-                    serial_number_or_name="218622270304",
+                    serial_number_or_name="230322270292",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "cam_low": RealSenseCameraConfig(
-                    serial_number_or_name="130322272628",
+                    serial_number_or_name="230322271134",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "cam_right_wrist": RealSenseCameraConfig(
-                    serial_number_or_name="128422271347",
+                    serial_number_or_name="230422272861",
                     width=640, height=480, fps=30, use_depth=False
                 ),
                 "cam_left_wrist": RealSenseCameraConfig(
-                    serial_number_or_name="218622274938",
+                    serial_number_or_name="230322270548",
                     width=640, height=480, fps=30, use_depth=False
                 ),
             }
         )
         self.robot = make_robot_from_config(bi_widowx_ai_config)
+
+        action_features = hw_to_dataset_features(self.robot.action_features, "action", use_videos)
+        obs_features = hw_to_dataset_features(self.robot.observation_features, "observation", use_videos)
+        dataset_features = {**action_features, **obs_features}
+
+        # Initialize dataset for recording if repo_id is provided
+        self.dataset = None
+        if repo_id is not None:
+            logger.info(f"Initializing LeRobotDataset: {repo_id}")
+            if resume:
+                self.dataset = LeRobotDataset(repo_id, root=root, batch_encoding_size=1)
+                if len(self.robot.cameras) > 0:
+                    self.dataset.start_image_writer(
+                        num_processes=num_image_writer_processes,
+                        num_threads=num_image_writer_threads_per_camera * len(self.robot.cameras),
+                    )
+            else:
+                self.dataset = LeRobotDataset.create(
+                    repo_id=repo_id,
+                    fps=control_frequency,
+                    robot_type=self.robot.name,
+                    root=root,
+                    features=dataset_features,
+                    use_videos=use_videos,
+                    image_writer_processes=num_image_writer_processes,
+                    image_writer_threads=num_image_writer_threads_per_camera * len(self.robot.cameras),
+                    batch_encoding_size=1,
+                )
+            logger.info(f"Dataset initialized. Episodes: {self.dataset.num_episodes}")
+        
         self.robot.connect()
 
         self.current_action_chunk = None
@@ -186,17 +237,21 @@ class TrossenOpenPIBridge:
                 else:
                     logger.warning(f"Invalid skill index: {skill_index}. Must be 0-{len(self.skill_instructions)-1}")
         return None
+    
+    def _make_action_dict(self, action: np.ndarray) -> dict:
+        full_action = action.copy()
+        joint_features = list(self.robot._joint_ft.keys())
+        action_dict = {k: full_action[i] for i, k in enumerate(joint_features)}
+        return action_dict
 
     def execute_action(self, action: np.ndarray):
         """Execute action on the arm."""
-        full_action = action.copy()
 
         if self.test_mode == "test":
-            logger.info(f"TEST MODE: Would execute action: {full_action}")
+            # logger.info(f"TEST MODE: Would execute action: {full_action}")
             return
         elif self.test_mode == "autonomous":
-            joint_features = list(self.robot._joint_ft.keys())
-            action_dict = {k: full_action[i] for i, k in enumerate(joint_features)}
+            action_dict = self._make_action_dict(action)
             self.robot.send_action(action_dict)
         else:
             logger.error(f"Unknown mode: {self.test_mode}. No action executed.")
@@ -241,6 +296,11 @@ class TrossenOpenPIBridge:
         # Setup keyboard input for skill selection
         self.setup_keyboard_input()
 
+        # Track if we're recording to dataset
+        recording = self.dataset is not None
+        if recording:
+            logger.info(f"Recording episode {self.dataset.num_episodes} to dataset")
+
         try:
             while self.is_running and self.episode_step < self.max_steps:
                 start_loop_time = time.perf_counter()
@@ -253,42 +313,49 @@ class TrossenOpenPIBridge:
                     logger.info(f"SKILL SWITCHED: [{self.current_skill_index}] {self.skill_instructions[self.current_skill_index]}")
                     logger.info("=" * 60)
 
+                # Get current skill instruction (needed for both policy and recording)
+                current_instruction = self.skill_instructions[self.current_skill_index]
+                
+                # Collect observation (needed for both policy and recording)
+                observation_dict = self.robot.get_observation()
+
+                # Extract joint positions from observation
+                joint_pos_keys = [k for k in observation_dict.keys() if k.endswith('.pos')]
+                joint_positions = np.array([observation_dict[k] for k in joint_pos_keys])
+
                 # Request new action chunk after consuming the previous one
                 if self.current_action_chunk is None or self.action_chunk_idx >= self.rate_of_inference:
-                    # Get current skill instruction
-                    current_instruction = self.skill_instructions[self.current_skill_index]
-                    
-                    observation_dict = self.robot.get_observation()
-
-                    # Extract joint positions from observation
-                    joint_pos_keys = [k for k in observation_dict.keys() if k.endswith('.pos')]
-                    joint_positions = np.array([observation_dict[k] for k in joint_pos_keys])
-
-                    # Transform and resize images from all cameras
+                    # Transform and resize images for policy inference (224x224 CHW format)
                     cameras = list(self.robot._cameras_ft.keys())
+                    policy_images = {}
                     for cam in cameras:
                         image_hwc = observation_dict[cam]
-                        #convert BGR to RGB
+                        #convert BGR to RGB and resize
                         image_resized = cv2.resize(image_hwc, (224, 224))
                         image_rgb = cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB)
                         image_chw = np.transpose(image_rgb, (2, 0, 1))
-                        observation_dict[cam] = image_chw
-
+                        policy_images[cam] = image_chw
+                    
                     # Create observation for policy to follow the ALOHA format
                     observation = {
                         "state": joint_positions,
-                        "images": {cam: observation_dict[cam] for cam in cameras},
+                        "images": policy_images,
                         "prompt": current_instruction
                     }
+                    # logger.info(f"robot state: {joint_positions}")
                 
-                    logger.info(f"Step {self.episode_step}: Requesting new action chunk with instruction: [{self.current_skill_index}] '{current_instruction}'")
+                    # logger.info(f"Step {self.episode_step}: Requesting new action chunk with instruction: [{self.current_skill_index}] '{current_instruction}'")
+                    t = time.time()
                     response = self.policy_client.infer(observation)
+                    inference_time = time.time() - t
+                    # logger.info(f"Inference time: {inference_time:.3f}s")
                     self.current_action_chunk = response["actions"]
+                    # logger.info(f"robot action: {self.current_action_chunk}")
 
-                for k in range(self.action_chunk_size):
-                    future_t = self.episode_step + k
-                    if future_t < self.action_buffer_size:
-                        self.action_buffer[future_t].append(self.current_action_chunk[k])
+                    for k in range(self.action_chunk_size):
+                        future_t = self.episode_step + k
+                        if future_t < self.action_buffer_size:
+                            self.action_buffer[future_t].append(self.current_action_chunk[k])
 
                     self.action_chunk_idx = 0
                     logger.info(f"Received action chunk: {self.current_action_chunk.shape}")
@@ -311,9 +378,15 @@ class TrossenOpenPIBridge:
                 else:
                     self.execute_action(a_t)
 
+                # Record observation and action to dataset
+                if recording and not is_first_step:
+                    observation_frame = build_dataset_frame(self.dataset.features, observation_dict, prefix="observation")
+                    action_frame = build_dataset_frame(self.dataset.features, self._make_action_dict(a_t), prefix="action")
+                    frame = {**observation_frame, **action_frame}
+                    self.dataset.add_frame(frame, task=current_instruction)
+
                 self.action_chunk_idx += 1
                 self.episode_step += 1
-
 
                 dt_s = time.perf_counter() - start_loop_time
                 busy_wait_time = self.dt - dt_s
@@ -322,13 +395,19 @@ class TrossenOpenPIBridge:
                 if busy_wait_time > 0:
                     time.sleep(busy_wait_time)
                 loop_s = time.perf_counter() - start_loop_time
-                logger.info(f"time: {loop_s * 1e3:.2f}ms ({1 / loop_s:.0f} Hz)")
+                # logger.info(f"time: {loop_s * 1e3:.2f}ms ({1 / loop_s:.0f} Hz)")
 
         finally:
             # Restore terminal settings
             self.restore_keyboard_input()
             self.is_running = False
             logger.info(f"Episode completed after {self.episode_step} steps")
+            
+            # Save episode to dataset
+            if recording and self.episode_step > 0:
+                logger.info("Saving episode to dataset...")
+                self.dataset.save_episode()
+                logger.info(f"Episode saved. Total episodes: {self.dataset.num_episodes}")
 
     def _get_weights(self, num_preds: int) -> np.ndarray:
         weights = np.exp(-self.temporal_ensemble_coefficient * np.arange(num_preds))
@@ -344,6 +423,12 @@ class TrossenOpenPIBridge:
         """Clean up resources."""
         logger.info("Cleaning up...")
         self.restore_keyboard_input()
+        
+        # Push dataset to hub if requested
+        if self.dataset is not None and self.push_to_hub:
+            logger.info("Pushing dataset to hub...")
+            self.dataset.push_to_hub()
+            
         self.robot.disconnect()
 
 if __name__ == "__main__":
@@ -357,6 +442,23 @@ if __name__ == "__main__":
     parser.add_argument("--initial_skill", type=int, default=0, help="Initial skill index")
     parser.add_argument("--tasks_file", type=str, required=True, 
                         help="Path to tasks.jsonl file containing skill instructions")
+    
+    # Dataset recording arguments
+    parser.add_argument("--repo_id", type=str, default=None,
+                        help="Repository ID for LeRobotDataset. If not provided, no recording will occur.")
+    parser.add_argument("--root", type=str, default=None,
+                        help="Root directory for dataset storage")
+    parser.add_argument("--resume", action="store_true",
+                        help="Resume recording to an existing dataset")
+    parser.add_argument("--push_to_hub", action="store_true",
+                        help="Push dataset to Hugging Face Hub after recording")
+    parser.add_argument("--use_videos", action="store_true", default=True,
+                        help="Use video encoding for images")
+    parser.add_argument("--num_image_writer_processes", type=int, default=0,
+                        help="Number of image writer processes")
+    parser.add_argument("--num_image_writer_threads_per_camera", type=int, default=4,
+                        help="Number of image writer threads per camera")
+    
     args = parser.parse_args()
 
     # Load skill instructions from file
@@ -375,7 +477,14 @@ if __name__ == "__main__":
         policy_server_port=args.policy_port,
         control_frequency=args.control_freq,
         test_mode=args.mode,
-        max_steps=args.max_steps
+        max_steps=args.max_steps,
+        repo_id=args.repo_id,
+        root=args.root,
+        resume=args.resume,
+        push_to_hub=args.push_to_hub,
+        use_videos=args.use_videos,
+        num_image_writer_processes=args.num_image_writer_processes,
+        num_image_writer_threads_per_camera=args.num_image_writer_threads_per_camera
     )
 
     # Set initial skill if provided
@@ -391,8 +500,10 @@ if __name__ == "__main__":
         bridge.autonomous_mode(task_prompt=initial_instruction)
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt detected. Cleaning up...")
+        traceback.print_exc()
     except Exception as e:
         logger.error(f"Error in autonomous mode: {e}")
+        traceback.print_exc()
     finally:
         bridge.cleanup()
 
