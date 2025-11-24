@@ -142,7 +142,7 @@ def create_torch_dataset(
     # Note: We don't pass episodes to LeRobotDataset due to a bug in lerobot's episode filtering.
     # Instead, we load all episodes and filter afterwards using Subset.
     # Use RobustLeRobotDataset which handles edge cases in video frame loading
-    dataset = RobustLeRobotDataset(
+    dataset = lerobot_dataset.LeRobotDataset(
         data_config.repo_id,
         root=data_config.local_root,
         delta_timestamps={
