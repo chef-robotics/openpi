@@ -908,6 +908,97 @@ _CONFIGS = [
         ema_decay=0.99,
     ),
     TrainConfig(
+        # Using worms-eye-view
+        # Otherwise the same as 3p2:
+        # - Right-hand-helping only episodes
+        # - Full fine-tuning (no LoRA)
+        name="pi0_lettuce_sandwich_4p1",
+        model=pi0.Pi0Config(),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/lettuce-sandwich",
+            base_config=DataConfig(
+                local_root="/home/sherrychen/ChefResearch/sandi/datasets/sandi/lettuce-sandwich",
+                prompt_from_task=True,
+                episodes=[
+                    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+                    79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
+                    105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
+                    127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148,
+                    149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168,
+                ]
+            ),
+            default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                # Unfortunately we have to call "cam_low" as "cam_high" because
+                                # aloha_policy expects cam_high as the base image.
+                                "cam_high": "observation.images.cam_low",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    TrainConfig(
+        # Same as 4p1, but using LeRobotDataset instead of RobustLeRobotDataset
+        name="pi0_lettuce_sandwich_4p1-1",
+        model=pi0.Pi0Config(),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/lettuce-sandwich",
+            base_config=DataConfig(
+                local_root="/home/sherrychen/ChefResearch/sandi/datasets/sandi/lettuce-sandwich",
+                prompt_from_task=True,
+                episodes=[
+                    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+                    79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
+                    105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
+                    127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148,
+                    149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168,
+                ]
+            ),
+            default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                # Unfortunately we have to call "cam_low" as "cam_high" because
+                                # aloha_policy expects cam_high as the base image.
+                                "cam_high": "observation.images.cam_low",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    TrainConfig(
         name="pi0_lettuce_sandwich_skills_v1",
         model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
         data=LeRobotAlohaDataConfig(
