@@ -1130,7 +1130,7 @@ _CONFIGS = [
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
             repo_id="sandi/lettuce-sandwich",
             base_config=DataConfig(
-                local_root="/home/inkyu/data/lettuce-sandwich",
+                local_root="/opt/data/sandi/lettuce-sandwich",
                 prompt_from_task=True,
                 episodes=[
                     26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
@@ -1169,7 +1169,6 @@ _CONFIGS = [
         batch_size=8,
         ema_decay=0.99,
     ),
-
     TrainConfig(
         name="pi0_lettuce-sandwich-181eps-5p2",
         model=pi0.Pi0Config(),
@@ -1178,7 +1177,7 @@ _CONFIGS = [
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
             repo_id="sandi/lettuce-sandwich-181eps-5p2",
             base_config=DataConfig(
-                local_root="/home/inkyu/data/lettuce-sandwich-181eps-5p2",
+                local_root="/opt/data/sandi/lettuce-sandwich-181eps-5p2",
                 prompt_from_task=True,
             ),
             default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
@@ -1205,7 +1204,6 @@ _CONFIGS = [
         batch_size=8,
         ema_decay=0.99,
     ),
-
     TrainConfig(
         name="pi0_fast_libero",
         # Here is an example of loading a pi0-FAST model for full finetuning.
