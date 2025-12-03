@@ -1204,6 +1204,44 @@ _CONFIGS = [
         batch_size=8,
         ema_decay=0.99,
     ),
+    
+    TrainConfig(
+        name="pi0_lettuce-sandwich-181eps-5p3-action-head-only",
+        model=pi0.Pi0Config(paligemma_variant="gemma_2b", action_expert_variant="gemma_300m_lora"),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/lettuce-sandwich-181eps-5p3-action-head-only",
+            base_config=DataConfig(
+                local_root="/opt/data/sandi/lettuce-sandwich-181eps-5p2",
+                prompt_from_task=True,
+            ),
+            default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        freeze_filter=model.get_freeze_filter(),
+        # Turn off EMA for LoRA finetuning.
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=2_000,
+        keep_period=500,
+        batch_size=8,
+        ema_decay=None,
+    ),
     TrainConfig(
         name="pi0_fast_libero",
         # Here is an example of loading a pi0-FAST model for full finetuning.
