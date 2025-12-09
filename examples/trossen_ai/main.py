@@ -91,8 +91,12 @@ class TrossenOpenPIBridge:
         self.is_running = False
         self.rate_of_inference = 50  # Number of control steps per policy inference (matches README and Pi-0 paper)
 
-        self.temporal_ensemble_coefficient = None  # Temporal ensembling weight (can be set to None for no ensembling)
-
+        self.temporal_ensemble_coefficient = 0.6 #None  # Temporal ensembling weight (can be set to None for no ensembling)
+        '''
+        A value closer to 0.1 (low weight) infers that the system places a stronger emphasis on past action predictions and a weaker emphasis on the most recent, single-step prediction. Inference: The robot's behavior will be more consistent, smoother, and less susceptible to environmental or sensor noise, but it will be less responsive to sudden changes or disturbances in the environment.
+        A value closer to 0.9 (high weight) infers that the system places a stronger emphasis on the current, most recent action prediction and a weaker emphasis on the historical data. Inference: The robot will exhibit higher responsiveness and be able to react quickly to unexpected disturbances or changes in the environment, but the motion might be less smooth or potentially more jittery if the sensory input or current policy prediction is noisy.
+        '''
+        print(f"self.temporal_ensemble_coefficient = {self.temporal_ensemble_coefficient}")
         # FIFO Buffer for actions
         self.action_buffer = defaultdict(list)
         self.action_buffer_size = self.max_steps + self.action_chunk_size  # Buffer size to hold actions for the entire episode
@@ -177,7 +181,7 @@ class TrossenOpenPIBridge:
                     "images": {cam: observation_dict[cam] for cam in cameras},
                     "prompt": task_prompt
                 }
-            
+
                 logger.info(f"Step {self.episode_step}: Requesting new action chunk")
                 response = self.policy_client.infer(observation)
                 self.current_action_chunk = response["actions"]

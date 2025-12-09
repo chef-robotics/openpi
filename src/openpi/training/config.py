@@ -1234,7 +1234,7 @@ _CONFIGS = [
                 ]
             ),
         ),
-        freeze_filter=model.get_freeze_filter(),
+        freeze_filter=pi0.Pi0Config(paligemma_variant="gemma_2b", action_expert_variant="gemma_300m_lora").get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=2_000,
