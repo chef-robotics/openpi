@@ -1169,6 +1169,104 @@ _CONFIGS = [
         batch_size=8,
         ema_decay=0.99,
     ),
+    
+    TrainConfig(
+        name="pi0_lettuce_sandwich_5p1-1",
+        model=pi0.Pi0Config(),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/lettuce-sandwich",
+            base_config=DataConfig(
+                local_root="/home/inkyu/data/lettuce-sandwich",
+                prompt_from_task=True,
+                episodes=[
+                    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+                    79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
+                    105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
+                    127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148,
+                    149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168,
+                    169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190,
+                    191, 192, 193, 194, 195, 196, 197, 198, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213,
+                    214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235,
+                    236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 253, 254, 255, 256, 257, 258, 259,
+                    260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272,
+                ]
+            ),
+            default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_low",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                # "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    
+    TrainConfig(
+        name="pi0_lettuce_sandwich_5p1-2",
+        model=pi0.Pi0Config(),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/lettuce-sandwich",
+            base_config=DataConfig(
+                local_root="/home/inkyu/data/lettuce-sandwich",
+                prompt_from_task=True,
+                episodes=[
+                    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+                    79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
+                    105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
+                    127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148,
+                    149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168,
+                    169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190,
+                    191, 192, 193, 194, 195, 196, 197, 198, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213,
+                    214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235,
+                    236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 253, 254, 255, 256, 257, 258, 259,
+                    260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272,
+                ]
+            ),
+            default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_left_wrist",
+                                # "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                # "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    
+    
     TrainConfig(
         name="pi0_lettuce-sandwich-181eps-5p2",
         model=pi0.Pi0Config(),
@@ -1177,7 +1275,7 @@ _CONFIGS = [
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
             repo_id="sandi/lettuce-sandwich-181eps-5p2",
             base_config=DataConfig(
-                local_root="/opt/data/sandi/lettuce-sandwich-181eps-5p2",
+                local_root="/home/inkyu/data/lettuce-sandwich-181eps-5p2",
                 prompt_from_task=True,
             ),
             default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
@@ -1213,7 +1311,7 @@ _CONFIGS = [
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
             repo_id="sandi/lettuce-sandwich-181eps-5p3-action-head-only",
             base_config=DataConfig(
-                local_root="/opt/data/sandi/lettuce-sandwich-181eps-5p2",
+                local_root="/home/inkyu/data/lettuce-sandwich-181eps-5p3-action-head-only",
                 prompt_from_task=True,
             ),
             default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
@@ -1234,13 +1332,48 @@ _CONFIGS = [
                 ]
             ),
         ),
-        freeze_filter=model.get_freeze_filter(),
+        freeze_filter=pi0.Pi0Config(paligemma_variant="gemma_2b", action_expert_variant="gemma_300m_lora").get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=2_000,
         keep_period=500,
         batch_size=8,
         ema_decay=None,
+    ),
+    TrainConfig(
+        name="pi0_test_scooping",
+        model=pi0.Pi0Config(),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/test_scooping",
+            base_config=DataConfig(
+                local_root="/home/inkyu/data/test-scooping-filtered",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a bowl with two chicken nuggets and small black foam. Use the tongs to pick up each nugget one at a time and deposit into the bowl. Then scoop small foam out of each pan and deposit into the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
     ),
     TrainConfig(
         name="pi0_fast_libero",
