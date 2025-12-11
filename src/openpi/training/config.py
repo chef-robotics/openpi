@@ -1178,7 +1178,7 @@ _CONFIGS = [
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
             repo_id="sandi/lettuce-sandwich",
             base_config=DataConfig(
-                local_root="/home/inkyu/data/lettuce-sandwich",
+                local_root="/opt/data/sandi/lettuce-sandwich",
                 prompt_from_task=True,
                 episodes=[
                     26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
@@ -1226,7 +1226,7 @@ _CONFIGS = [
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
             repo_id="sandi/lettuce-sandwich",
             base_config=DataConfig(
-                local_root="/home/inkyu/data/lettuce-sandwich",
+                local_root="/opt/data/sandi/lettuce-sandwich",
                 prompt_from_task=True,
                 episodes=[
                     26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
