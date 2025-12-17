@@ -233,9 +233,17 @@ def main(config: _config.TrainConfig):
     logging.info(f"Initialized data loader:\n{training_utils.array_tree_to_info(batch)}")
 
     # Log images from first batch to sanity check.
+    # Use the same preprocessing path as the model (incl. center-crop) so W&B
+    # media matches the model inputs.
+    log_obs = _model.preprocess_observation(
+        None,
+        batch[0],
+        train=False,
+        center_crop_square=config.model.center_crop_square,
+    )
     images_to_log = [
-        wandb.Image(np.concatenate([np.array(img[i]) for img in batch[0].images.values()], axis=1))
-        for i in range(min(5, len(next(iter(batch[0].images.values())))))
+        wandb.Image(np.concatenate([np.array(img[i]) for img in log_obs.images.values()], axis=1))
+        for i in range(min(5, len(next(iter(log_obs.images.values())))))
     ]
     wandb.log({"camera_views": images_to_log}, step=0)
 
