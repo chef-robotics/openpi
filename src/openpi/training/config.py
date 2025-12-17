@@ -1205,6 +1205,77 @@ _CONFIGS = [
         ema_decay=0.99,
     ),
     TrainConfig(
+        name="pi0_test_scooping",
+        model=pi0.Pi0Config(),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/test_scooping",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/test-scooping-filtered/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a bowl with two chicken nuggets and small black foam. Use the tongs to pick up each nugget one at a time and deposit into the bowl. Then scoop small foam out of each pan and deposit into the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    TrainConfig(
+        name="pi0_scooping-simple",
+        model=pi0.Pi0Config(),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/scooping-simple",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/scooping-simple-filtered/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a bowl with one chicken nugget and small black foam. Pick up a nugget and deposit into the bowl, Then scoop small foam out of each pan and deposit into the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+        center_crop_square=True,
+    ),
+    TrainConfig(
         name="pi0_fast_libero",
         # Here is an example of loading a pi0-FAST model for full finetuning.
         # Modify action_dim and action_horizon to match your dataset (action horizon is equal to
