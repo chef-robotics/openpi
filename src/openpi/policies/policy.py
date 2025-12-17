@@ -45,6 +45,14 @@ class Policy(BasePolicy):
         inputs = self._input_transform(inputs)
         # Make a batch and convert to jax.Array.
         inputs = jax.tree.map(lambda x: jnp.asarray(x)[np.newaxis, ...], inputs)
+        
+        #just for sanity check,
+        import imageio.v3 as iio
+        import numpy as np
+        img = np.asarray(inputs["images"]["cam_high"])
+        img = ((img + 1) * 127.5).clip(0,255).astype(np.uint8)
+        iio.imwrite(f"/tmp/policy_cam_high.png", img)
+        # end of sanity check
 
         start_time = time.monotonic()
         self._rng, sample_rng = jax.random.split(self._rng)
