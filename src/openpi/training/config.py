@@ -1177,7 +1177,7 @@ _CONFIGS = [
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
             repo_id="sandi/lettuce-sandwich-181eps-5p2",
             base_config=DataConfig(
-                local_root="/opt/data/sandi/lettuce-sandwich-181eps-5p2",
+                local_root="/home/inkyu/data/lettuce-sandwich-181eps-5p2",
                 prompt_from_task=True,
             ),
             default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
@@ -1213,7 +1213,7 @@ _CONFIGS = [
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
             repo_id="sandi/lettuce-sandwich-181eps-5p3-action-head-only",
             base_config=DataConfig(
-                local_root="/opt/data/sandi/lettuce-sandwich-181eps-5p2",
+                local_root="/home/inkyu/data/lettuce-sandwich-181eps-5p3-action-head-only",
                 prompt_from_task=True,
             ),
             default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
@@ -1234,7 +1234,7 @@ _CONFIGS = [
                 ]
             ),
         ),
-        freeze_filter=model.get_freeze_filter(),
+        freeze_filter=pi0.Pi0Config(paligemma_variant="gemma_2b", action_expert_variant="gemma_300m_lora").get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=2_000,
