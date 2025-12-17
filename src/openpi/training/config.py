@@ -116,10 +116,11 @@ class ModelTransformFactory(GroupFactory):
     def __call__(self, model_config: _model.BaseModelConfig) -> _transforms.Group:
         match model_config.model_type:
             case _model.ModelType.PI0:
+                resize = [] if model_config.center_crop_square else [_transforms.ResizeImages(224, 224)]
                 return _transforms.Group(
                     inputs=[
                         _transforms.InjectDefaultPrompt(self.default_prompt),
-                        _transforms.ResizeImages(224, 224),
+                        *resize,
                         _transforms.TokenizePrompt(
                             _tokenizer.PaligemmaTokenizer(model_config.max_token_len),
                         ),
@@ -134,10 +135,11 @@ class ModelTransformFactory(GroupFactory):
                 tokenizer_kwargs = (
                     {} if model_config.fast_model_tokenizer_kwargs is None else model_config.fast_model_tokenizer_kwargs
                 )
+                resize = [] if model_config.center_crop_square else [_transforms.ResizeImages(224, 224)]
                 return _transforms.Group(
                     inputs=[
                         _transforms.InjectDefaultPrompt(self.default_prompt),
-                        _transforms.ResizeImages(224, 224),
+                        *resize,
                         _transforms.TokenizeFASTInputs(
                             tokenizer_cls(model_config.max_token_len, **tokenizer_kwargs),
                         ),
@@ -460,9 +462,6 @@ class TrainConfig:
     # eg. if total device is 4 and fsdp devices is 2; then the model will shard to 2 devices and run
     # data parallel between 2 groups of devices.
     fsdp_devices: int = 1
-
-    # If True, will center crop the square of the image
-    center_crop_square: bool = False
     
     @property
     def assets_dirs(self) -> pathlib.Path:
@@ -1209,7 +1208,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_test_scooping",
-        model=pi0.Pi0Config(),
+        model=pi0.Pi0Config(center_crop_square=True),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1276,7 +1275,6 @@ _CONFIGS = [
         keep_period=10_000,
         batch_size=8,
         ema_decay=0.99,
-        center_crop_square=True,
     ),
     TrainConfig(
         name="pi0_fast_libero",
