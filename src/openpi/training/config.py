@@ -1243,7 +1243,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_scooping-simple",
-        model=pi0.Pi0Config(),
+        model=pi0.Pi0Config(center_crop_square=True),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
