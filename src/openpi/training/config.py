@@ -1249,7 +1249,7 @@ _CONFIGS = [
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
             repo_id="sandi/scooping-simple",
             base_config=DataConfig(
-                local_root="/home/inkyu/workspace/dataset/sandi/scooping-simple-filtered/",
+                local_root="/opt/data/sandi/scooping-simple-filtered/",
                 prompt_from_task=True,
             ),
             default_prompt="Prepare a bowl with one chicken nugget and small black foam. Pick up a nugget and deposit into the bowl, Then scoop small foam out of each pan and deposit into the bowl.",

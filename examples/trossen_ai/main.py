@@ -141,7 +141,7 @@ class TrossenOpenPIBridge:
             positions = interpolator_position(current_time)
             self.execute_action(positions)
 
-    def run_episode(self, task_prompt: str = "look down"):
+    def run_episode(self, task_prompt: str = "look down", center_crop=False):
         """Run a single episode of policy execution."""
         logger.info(f"Starting episode with prompt: '{task_prompt}'")
         self.episode_step = 0
@@ -164,7 +164,15 @@ class TrossenOpenPIBridge:
                 # Transform and resize images from all cameras
                 cameras = list(self.robot._cameras_ft.keys())
                 for cam in cameras:
-                    image_hwc = observation_dict[cam]
+                    image_hwc = observation_dict[cam] # shape: (H, W, C), BGR
+                    if center_crop:
+                        h, w, _ = image_hwc.shape
+                        crop_size = min(h, w)
+                        # Compute top, left corner coordinates
+                        top = (h - crop_size) // 2
+                        left = (w - crop_size) // 2
+                        # Center crop
+                        image_hwc = image_hwc[top:top + crop_size, left:left + crop_size]
                     #convert BGR to RGB
                     image_resized = cv2.resize(image_hwc, (224, 224))
                     image_rgb = cv2.cvtColor(image_resized, cv2.COLOR_BGR2RGB)
@@ -232,7 +240,7 @@ class TrossenOpenPIBridge:
     def autonomous_mode(self, task_prompt: str = "look down"):
         """Run in autonomous mode where the arm executes policy predictions."""
         logger.info("Starting autonomous mode")
-        self.run_episode(task_prompt=task_prompt)
+        self.run_episode(task_prompt=task_prompt, center_crop=True)
 
     def cleanup(self):
         """Clean up resources."""
