@@ -45,7 +45,6 @@ class Policy(BasePolicy):
         inputs = self._input_transform(inputs)
         # Make a batch and convert to jax.Array.
         inputs = jax.tree.map(lambda x: jnp.asarray(x)[np.newaxis, ...], inputs)
-
         start_time = time.monotonic()
         self._rng, sample_rng = jax.random.split(self._rng)
         outputs = {
