@@ -1356,6 +1356,51 @@ _CONFIGS = [
         batch_size=8,
         ema_decay=None,
     ),
+
+    TrainConfig(
+        name="pi0_hi-test2",
+        model=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", 
+            action_expert_variant="gemma_300m_lora", 
+            center_crop_square=True
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/hi-test2",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/hi-test2/",
+                prompt_from_task=True,
+            ),
+            default_prompt="pick a chicken nugget and place it into paper bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        freeze_filter=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", 
+            action_expert_variant="gemma_300m_lora", 
+            center_crop_square=True
+            ).get_freeze_filter(),
+        num_train_steps=30_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=None,
+    ),
         
     TrainConfig(
         name="pi0_fast_libero",
