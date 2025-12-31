@@ -1640,6 +1640,84 @@ _CONFIGS = [
     ),
 
     TrainConfig(
+        name="pi0_chipotle-scoop-day2",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day2",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+
+    TrainConfig(
+        name="pi0_chipotle-scoop-day2-3",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day2-3",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+
+    TrainConfig(
         name="pi0_fast_libero",
         # Here is an example of loading a pi0-FAST model for full finetuning.
         # Modify action_dim and action_horizon to match your dataset (action horizon is equal to
