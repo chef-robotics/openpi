@@ -1718,6 +1718,132 @@ _CONFIGS = [
     ),
 
     TrainConfig(
+        name="pi0_pretrain2",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_pretrain2",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/pretrain2/",
+                prompt_from_task=True,
+            ),
+            default_prompt="pretrain2",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+
+    TrainConfig(
+        name="pi0_pretrain2-idpt",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_pretrain2-idpt",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/pretrain2/",
+                prompt_from_task=True,
+            ),
+            default_prompt="pretrain2 in domain pretrain",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=30_000,
+        keep_period=10_000,
+        batch_size=32,
+        ema_decay=0.99,
+        lr_schedule=_optimizer.CosineDecaySchedule(
+            warmup_steps=1_000,
+            peak_lr=5e-5,
+            # Match this to your num_train_steps so the cycle completes exactly at the end
+            decay_steps=30_000, 
+            # Decays to 10% of peak, helping the model settle into a minima
+            decay_lr=5e-6, 
+        ),
+    ),
+    
+    TrainConfig(
+        name="pi0_chipotle-scoop-day2-3-p1",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day2-3-p1",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        # weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_pretrain2-idpt/pi0_pretrain2-idpt/29999/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=32,
+        ema_decay=0.99,
+    ),
+
+    TrainConfig(
         name="pi0_fast_libero",
         # Here is an example of loading a pi0-FAST model for full finetuning.
         # Modify action_dim and action_horizon to match your dataset (action horizon is equal to
