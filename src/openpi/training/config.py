@@ -2058,7 +2058,7 @@ _CONFIGS = [
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
-            repo_id="sandi/pi0_chipotle-scoop-day2-3-4-5-subtask-p0",
+            repo_id="sandi/pi0_chipotle-scoop-day2-3-4-5-subtask-p1",
             base_config=DataConfig(
                 local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3-4-5-subtask/",
                 prompt_from_task=True,
@@ -2083,7 +2083,7 @@ _CONFIGS = [
         ),
         # weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
         weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_pretrain2-idpt/pi0_pretrain2-idpt/29999/params"),
-        num_train_steps=15_000,
+        num_train_steps=30_000,
         keep_period=10_000,
         batch_size=32,
         ema_decay=0.99,
