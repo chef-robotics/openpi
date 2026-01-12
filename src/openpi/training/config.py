@@ -1000,7 +1000,7 @@ _CONFIGS = [
         ema_decay=None,
     ),
     TrainConfig(
-        name="pi0_trossen_transfer_block",
+        name="pi0_trossen_transfer_block_4cam",
         model=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=False,
