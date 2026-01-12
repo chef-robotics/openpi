@@ -192,6 +192,89 @@ class ResizeImages(DataTransformFn):
 
 
 @dataclasses.dataclass(frozen=True)
+class ExtractROI(DataTransformFn):
+    """Extract a Region of Interest (ROI) from an existing image and add as a new image.
+    
+    The ROI is defined by a center point and crop size. The cropped region is then
+    resized to the target output size.
+    
+    Handles both [H, W, C] and [C, H, W] image formats automatically.
+    
+    Example:
+        ExtractROI(
+            source_key="cam_high",
+            target_key="cam_high_bowl_roi",
+            center_x=330,
+            center_y=392,
+            crop_width=112,
+            crop_height=112,
+            output_width=224,
+            output_height=224,
+        )
+    """
+    # Source image key to crop from
+    source_key: str
+    # Target image key to add
+    target_key: str
+    # Center coordinates of the crop region (in source image coordinates)
+    center_x: int
+    center_y: int
+    # Size of the crop region
+    crop_width: int
+    crop_height: int
+    # Output size after resize (default 224x224 for SigLIP)
+    output_width: int = 224
+    output_height: int = 224
+
+    def __call__(self, data: DataDict) -> DataDict:
+        if "images" not in data:
+            return data
+        
+        if self.source_key not in data["images"]:
+            raise ValueError(f"Source image key '{self.source_key}' not found in data['images']")
+        
+        source_image = np.asarray(data["images"][self.source_key])
+        
+        # Detect if image is in [C, H, W] or [H, W, C] format
+        # Assume channel dimension is the smallest and is 3 or 4
+        is_chw = source_image.shape[0] in (3, 4) and source_image.shape[0] < source_image.shape[1]
+        
+        if is_chw:
+            # Convert [C, H, W] to [H, W, C] for processing
+            source_image = np.transpose(source_image, (1, 2, 0))
+        
+        h, w = source_image.shape[:2]
+        
+        # Calculate crop boundaries
+        x1 = max(0, self.center_x - self.crop_width // 2)
+        y1 = max(0, self.center_y - self.crop_height // 2)
+        x2 = min(w, x1 + self.crop_width)
+        y2 = min(h, y1 + self.crop_height)
+        
+        # Adjust if crop goes out of bounds
+        if x2 - x1 < self.crop_width:
+            x1 = max(0, x2 - self.crop_width)
+        if y2 - y1 < self.crop_height:
+            y1 = max(0, y2 - self.crop_height)
+        
+        # Crop the region [H, W, C]
+        cropped = source_image[y1:y2, x1:x2]
+        
+        # Resize to output size
+        import cv2
+        resized = cv2.resize(cropped, (self.output_width, self.output_height), interpolation=cv2.INTER_LINEAR)
+        
+        # Convert back to original format if needed
+        if is_chw:
+            resized = np.transpose(resized, (2, 0, 1))
+        
+        # Add the new image to the data
+        data["images"][self.target_key] = resized
+        
+        return data
+
+
+@dataclasses.dataclass(frozen=True)
 class SubsampleActions(DataTransformFn):
     stride: int
 

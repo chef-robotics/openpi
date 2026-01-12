@@ -195,6 +195,7 @@ class Pi0(_model.BaseModel):
             preprocess_rng,
             observation,
             train=train,
+            image_keys=list(observation.images.keys()),
             center_crop_square=self.config.center_crop_square,
         )
 
@@ -232,6 +233,7 @@ class Pi0(_model.BaseModel):
             None,
             observation,
             train=False,
+            image_keys=list(observation.images.keys()),
             center_crop_square=self.config.center_crop_square,
         )
         # note that we use the convention more common in diffusion literature, where t=1 is noise and t=0 is the target

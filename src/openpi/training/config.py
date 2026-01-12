@@ -287,6 +287,86 @@ class LeRobotAlohaDataConfig(DataConfigFactory):
 
 
 @dataclasses.dataclass(frozen=True)
+class LeRobotAlohaDataConfigWithROI(DataConfigFactory):
+    """Extended Aloha data config that adds ROI extraction from the top camera.
+    
+    This extracts a cropped region from cam_high, resizes it to 224x224, and adds
+    it as an additional "bowl_roi_rgb" image input to the model.
+    """
+    use_delta_joint_actions: bool = True
+    default_prompt: str | None = None
+    adapt_to_pi: bool = True
+    
+    # ROI extraction parameters
+    roi_center_x: int = 330  # Center X of crop in original image
+    roi_center_y: int = 392  # Center Y of crop in original image
+    roi_crop_size: int = 112  # Size of the square crop
+    roi_output_size: int = 224  # Output size after resize (2x)
+    
+    repack_transforms: tyro.conf.Suppress[_transforms.Group] = dataclasses.field(
+        default=_transforms.Group(
+            inputs=[
+                _transforms.RepackTransform(
+                    {
+                        "images": {
+                            "cam_high": "observation.images.cam_high",
+                            "cam_left_wrist": "observation.images.cam_left_wrist",
+                            "cam_right_wrist": "observation.images.cam_right_wrist",
+                            "cam_low": "observation.images.cam_low",
+                        },
+                        "state": "observation.state",
+                        "actions": "action",
+                    }
+                )
+            ]
+        )
+    )
+    action_sequence_keys: Sequence[str] = ("action",)
+
+    @override
+    def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
+        # Add ROI extraction to repack transforms
+        roi_transform = _transforms.ExtractROI(
+            source_key="cam_high",
+            target_key="cam_high_bowl_roi",
+            center_x=self.roi_center_x,
+            center_y=self.roi_center_y,
+            crop_width=self.roi_crop_size,
+            crop_height=self.roi_crop_size,
+            output_width=self.roi_output_size,
+            output_height=self.roi_output_size,
+        )
+        repack_with_roi = _transforms.Group(
+            inputs=[*self.repack_transforms.inputs, roi_transform]
+        )
+        
+        # Use extended AlohaInputs that supports extra cameras
+        data_transforms = _transforms.Group(
+            inputs=[aloha_policy.AlohaInputsWithExtraCameras(
+                adapt_to_pi=self.adapt_to_pi,
+                extra_camera_mapping={"bowl_roi_rgb": "cam_high_bowl_roi"},
+            )],
+            outputs=[aloha_policy.AlohaOutputs(adapt_to_pi=self.adapt_to_pi)],
+        )
+        if self.use_delta_joint_actions:
+            delta_action_mask = _transforms.make_bool_mask(6, -1, 6, -1)
+            data_transforms = data_transforms.push(
+                inputs=[_transforms.DeltaActions(delta_action_mask)],
+                outputs=[_transforms.AbsoluteActions(delta_action_mask)],
+            )
+
+        model_transforms = ModelTransformFactory(default_prompt=self.default_prompt)(model_config)
+
+        return dataclasses.replace(
+            self.create_base_config(assets_dirs, model_config),
+            repack_transforms=repack_with_roi,
+            data_transforms=data_transforms,
+            model_transforms=model_transforms,
+            action_sequence_keys=self.action_sequence_keys,
+        )
+
+
+@dataclasses.dataclass(frozen=True)
 class LeRobotLiberoDataConfig(DataConfigFactory):
     """
     This config is used to configure transforms that are applied at various parts of the data pipeline.
@@ -2564,6 +2644,49 @@ _CONFIGS = [
         # weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
         # weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_pretrain2-idpt/pi0_pretrain2-idpt/29999/params"),
+        num_train_steps=30_000,
+        keep_period=10_000,
+        batch_size=32,
+        ema_decay=0.99,
+    ),
+    # ROI crop experiment: 4 cameras + bowl ROI from top camera (5 images total)
+    TrainConfig(
+        name="pi05_chipotle-scoop-day2-3-4-5-subtask-roi-p0",
+        model=pi0_config.Pi0Config(
+            pi05=True,
+            center_crop_square=True,
+            ),
+        data=LeRobotAlohaDataConfigWithROI(
+            use_delta_joint_actions=True,
+            adapt_to_pi=False,
+            repo_id="sandi/pi05_chipotle-scoop-day2-3-4-5-subtask-p0",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3-4-5-subtask/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients.",
+            # ROI extraction config: crop 112x112 centered at (330, 392), resize 2x to 224x224
+            roi_center_x=330,
+            roi_center_y=392,
+            roi_crop_size=112,
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    ),
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
         num_train_steps=30_000,
         keep_period=10_000,
         batch_size=32,
