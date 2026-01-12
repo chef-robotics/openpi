@@ -141,9 +141,13 @@ def preprocess_observation(
     train: bool = False,
     image_keys: Sequence[str] = IMAGE_KEYS,
     image_resolution: tuple[int, int] = IMAGE_RESOLUTION,
+    center_crop_square: bool = False,
 ) -> Observation:
     """Preprocess the observations by performing image augmentations (if train=True), resizing (if necessary), and
     filling in a default image mask (if necessary).
+
+    If `center_crop_square` is True, images are center-cropped to a square using the
+    shortest side, then resized to `image_resolution` without padding.
     """
 
     if not set(image_keys).issubset(observation.images):
@@ -154,7 +158,10 @@ def preprocess_observation(
     out_images = {}
     for key in image_keys:
         image = observation.images[key]
-        if image.shape[1:3] != image_resolution:
+        if center_crop_square:
+            square = min(image.shape[1], image.shape[2])
+            image = image_tools.center_crop_and_resize(image, square, *image_resolution)
+        elif image.shape[1:3] != image_resolution:
             logger.info(f"Resizing image {key} from {image.shape[1:3]} to {image_resolution}")
             image = image_tools.resize_with_pad(image, *image_resolution)
 
@@ -213,6 +220,8 @@ class BaseModelConfig(abc.ABC):
     action_horizon: int
     # Tokenized prompt maximum length.
     max_token_len: int
+    # If True, center-crop images to a square before resizing to IMAGE_RESOLUTION.
+    center_crop_square: bool = False
 
     @property
     @abc.abstractmethod

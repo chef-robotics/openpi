@@ -48,3 +48,45 @@ def resize_with_pad(
     if not has_batch_dim:
         padded_images = padded_images[0]
     return padded_images
+
+
+@functools.partial(jax.jit, static_argnums=(1, 2, 3, 4))
+@at.typecheck
+def center_crop_and_resize(
+    images: at.UInt8[at.Array, "*b h w c"] | at.Float[at.Array, "*b h w c"],
+    crop_size: int,
+    out_height: int,
+    out_width: int,
+    method: jax.image.ResizeMethod = jax.image.ResizeMethod.LINEAR,
+) -> at.UInt8[at.Array, "*b {out_height} {out_width} c"] | at.Float[at.Array, "*b {out_height} {out_width} c"]:
+    """Center-crop a square of `crop_size` then resize to `out_height` x `out_width`.
+
+    If the input is smaller than `crop_size` on either dimension, it crops to the
+    largest possible centered square instead.
+    """
+    has_batch_dim = images.ndim == 4
+    if not has_batch_dim:
+        images = images[None]  # type: ignore
+
+    cur_height, cur_width = images.shape[1:3]
+    square = min(cur_height, cur_width, crop_size)
+    top = (cur_height - square) // 2
+    left = (cur_width - square) // 2
+
+    cropped = jax.lax.dynamic_slice(
+        images, (0, top, left, 0), (images.shape[0], square, square, images.shape[3])
+    )
+    resized = jax.image.resize(
+        cropped, (images.shape[0], out_height, out_width, images.shape[3]), method=method
+    )
+
+    if images.dtype == jnp.uint8:
+        resized = jnp.round(resized).clip(0, 255).astype(jnp.uint8)
+    elif images.dtype == jnp.float32:
+        resized = resized.clip(-1.0, 1.0)
+    else:
+        raise ValueError(f"Unsupported image dtype: {images.dtype}")
+
+    if not has_batch_dim:
+        resized = resized[0]
+    return resized

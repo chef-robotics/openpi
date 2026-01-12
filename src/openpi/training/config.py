@@ -116,10 +116,11 @@ class ModelTransformFactory(GroupFactory):
     def __call__(self, model_config: _model.BaseModelConfig) -> _transforms.Group:
         match model_config.model_type:
             case _model.ModelType.PI0:
+                resize = [] if model_config.center_crop_square else [_transforms.ResizeImages(224, 224)]
                 return _transforms.Group(
                     inputs=[
                         _transforms.InjectDefaultPrompt(self.default_prompt),
-                        _transforms.ResizeImages(224, 224),
+                        *resize,
                         _transforms.TokenizePrompt(
                             _tokenizer.PaligemmaTokenizer(model_config.max_token_len),
                         ),
@@ -134,10 +135,11 @@ class ModelTransformFactory(GroupFactory):
                 tokenizer_kwargs = (
                     {} if model_config.fast_model_tokenizer_kwargs is None else model_config.fast_model_tokenizer_kwargs
                 )
+                resize = [] if model_config.center_crop_square else [_transforms.ResizeImages(224, 224)]
                 return _transforms.Group(
                     inputs=[
                         _transforms.InjectDefaultPrompt(self.default_prompt),
-                        _transforms.ResizeImages(224, 224),
+                        *resize,
                         _transforms.TokenizeFASTInputs(
                             tokenizer_cls(model_config.max_token_len, **tokenizer_kwargs),
                         ),
@@ -460,7 +462,7 @@ class TrainConfig:
     # eg. if total device is 4 and fsdp devices is 2; then the model will shard to 2 devices and run
     # data parallel between 2 groups of devices.
     fsdp_devices: int = 1
-
+    
     @property
     def assets_dirs(self) -> pathlib.Path:
         """Get the assets directory for this config."""
@@ -1121,6 +1123,1011 @@ _CONFIGS = [
         ).get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
         ema_decay=None,
+    ),
+    TrainConfig(
+        name="pi0_lettuce_sandwich_5p1",
+        model=pi0.Pi0Config(),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/lettuce-sandwich",
+            base_config=DataConfig(
+                local_root="/opt/data/sandi/lettuce-sandwich",
+                prompt_from_task=True,
+                episodes=[
+                    26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 51, 55, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69,
+                    79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104,
+                    105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126,
+                    127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148,
+                    149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168,
+                    169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182, 183, 184, 185, 186, 187, 188, 189, 190,
+                    191, 192, 193, 194, 195, 196, 197, 198, 200, 201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213,
+                    214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233, 234, 235,
+                    236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 253, 254, 255, 256, 257, 258, 259,
+                    260, 261, 262, 263, 264, 265, 266, 267, 268, 269, 270, 271, 272,
+                ]
+            ),
+            default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    TrainConfig(
+        name="pi0_lettuce-sandwich-181eps-5p2",
+        model=pi0.Pi0Config(),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/lettuce-sandwich-181eps-5p2",
+            base_config=DataConfig(
+                local_root="/opt/data/sandi/lettuce-sandwich-181eps-5p2",
+                prompt_from_task=True,
+            ),
+            default_prompt="Assemble a lettuce sandwich using one slice of bread, one piece of lettuce, and another piece of bread.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    TrainConfig(
+        name="pi0_test_scooping",
+        model=pi0.Pi0Config(center_crop_square=True),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/test_scooping",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/test-scooping-filtered/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a bowl with two chicken nuggets and small black foam. Use the tongs to pick up each nugget one at a time and deposit into the bowl. Then scoop small foam out of each pan and deposit into the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    TrainConfig(
+        name="pi0_scooping-simple",
+        model=pi0.Pi0Config(center_crop_square=True),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/scooping-simple",
+            base_config=DataConfig(
+                local_root="/opt/data/sandi/scooping-simple-filtered/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a bowl with one chicken nugget and small black foam. Pick up a nugget and deposit into the bowl, Then scoop small foam out of each pan and deposit into the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    TrainConfig(
+        name="pi0_scooping-simple-p1",
+        model=pi0.Pi0Config(center_crop_square=False),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/scooping-simple-p1",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/scooping-simple-filtered/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a bowl with one chicken nugget and small black foam. Pick up a nugget and deposit into the bowl, Then scoop small foam out of each pan and deposit into the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    
+    TrainConfig(
+        name="pi0_hi-test",
+        model=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", 
+            action_expert_variant="gemma_300m_lora", 
+            center_crop_square=True
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/hi-test",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/hi-test/",
+                prompt_from_task=True,
+            ),
+            default_prompt="pick a chicken nugget and place it into paper bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        freeze_filter=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", 
+            action_expert_variant="gemma_300m_lora", 
+            center_crop_square=True
+            ).get_freeze_filter(),
+        num_train_steps=30_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=None,
+    ),
+    TrainConfig(
+        name="pi0_hi-test-p1",
+        model=pi0.Pi0Config(
+            center_crop_square=True
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/hi-test",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/hi-test/",
+                prompt_from_task=True,
+            ),
+            default_prompt="pick a chicken nugget and place it into paper bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+
+    TrainConfig(
+        name="pi0_hi-test2",
+        model=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", 
+            action_expert_variant="gemma_300m_lora", 
+            center_crop_square=True
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/hi-test2",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/hi-test2/",
+                prompt_from_task=True,
+            ),
+            default_prompt="pick a chicken nugget and place it into paper bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        freeze_filter=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", 
+            action_expert_variant="gemma_300m_lora", 
+            center_crop_square=True
+            ).get_freeze_filter(),
+        num_train_steps=30_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=None,
+    ),
+
+    TrainConfig(
+        name="pi0_chipotle-scoop-day1",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day1",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day1/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    TrainConfig(
+        name="pi0_chipotle-scoop-day1-p1",
+        model=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", 
+            action_expert_variant="gemma_300m_lora", 
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day1-p1",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day1/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        freeze_filter=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", 
+            action_expert_variant="gemma_300m_lora", 
+            center_crop_square=True,
+            max_token_len=128,
+            ).get_freeze_filter(),
+        num_train_steps=30_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=None,
+    ),
+    TrainConfig(
+        name="pi0_chipotle-scoop-day1-p2",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day1-p2",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day1/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_scooping-simple/pi0_scooping-simple/59999/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+    TrainConfig(
+        name="pi0_pretrain",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_pretrain",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/pretrain/",
+                prompt_from_task=True,
+            ),
+            default_prompt="pretrain",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+
+    TrainConfig(
+        name="pi0_chipotle-scoop-day1-p3",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day1-p3",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day1/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_pretrain/pi0_pretrain/59999/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+
+    TrainConfig(
+        name="pi0_chipotle-scoop-day2",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day2",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+
+    TrainConfig(
+        name="pi0_chipotle-scoop-day2-3",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day2-3",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+
+    TrainConfig(
+        name="pi0_pretrain2",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_pretrain2",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/pretrain2/",
+                prompt_from_task=True,
+            ),
+            default_prompt="pretrain2",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=8,
+        ema_decay=0.99,
+    ),
+
+    TrainConfig(
+        name="pi0_pretrain2-idpt",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_pretrain2-idpt",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/pretrain2/",
+                prompt_from_task=True,
+            ),
+            default_prompt="pretrain2 in domain pretrain",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        num_train_steps=30_000,
+        keep_period=10_000,
+        batch_size=32,
+        ema_decay=0.99,
+        lr_schedule=_optimizer.CosineDecaySchedule(
+            warmup_steps=1_000,
+            peak_lr=5e-5,
+            # Match this to your num_train_steps so the cycle completes exactly at the end
+            decay_steps=30_000, 
+            # Decays to 10% of peak, helping the model settle into a minima
+            decay_lr=5e-6, 
+        ),
+    ),
+    
+    TrainConfig(
+        name="pi0_chipotle-scoop-day2-3-p0",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day2-3-p0",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        # weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_pretrain2/pi0_pretrain2/59999/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        # batch_size=8,
+        batch_size=32,
+        ema_decay=0.99,
+    ),
+    
+    TrainConfig(
+        name="pi0_chipotle-scoop-day2-3-p1",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day2-3-p1",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        # weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_pretrain2-idpt/pi0_pretrain2-idpt/29999/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=32,
+        ema_decay=0.99,
+    ),
+
+    TrainConfig(
+        name="pi0_chipotle-scoop-day2-3-p2",
+        model=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", 
+            action_expert_variant="gemma_300m_lora", 
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day2-3-p2",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        freeze_filter=pi0.Pi0Config(
+            paligemma_variant="gemma_2b_lora", 
+            action_expert_variant="gemma_300m_lora", 
+            center_crop_square=True,
+            max_token_len=128,
+            ).get_freeze_filter(),
+        num_train_steps=30_000,
+        keep_period=10_000,
+        batch_size=32,
+        ema_decay=None,
+    ),
+
+
+   TrainConfig(
+        name="pi0_chipotle-scoop-day2-3-4-5-p0",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day2-3-4-5-p0",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3-4-5/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        # weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_pretrain2-idpt/pi0_pretrain2-idpt/29999/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=32,
+        ema_decay=0.99,
+    ),
+
+   TrainConfig(
+        name="pi0_chipotle-scoop-day2-3-4-5-p1",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            max_token_len=128,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day2-3-4-5-p1",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3-4-5/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        # weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_pretrain2-idpt/pi0_pretrain2-idpt/29999/params"),
+        num_train_steps=60_000,
+        keep_period=10_000,
+        batch_size=32,
+        ema_decay=0.99,
+    ),
+
+   TrainConfig(
+        name="pi0_chipotle-scoop-day2-3-4-5-subtask-p0",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day2-3-4-5-subtask-p0",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3-4-5-subtask/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        # weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_pretrain2-idpt/pi0_pretrain2-idpt/29999/params"),
+        num_train_steps=30_000,
+        keep_period=10_000,
+        batch_size=32,
+        ema_decay=0.99,
+    ),
+   TrainConfig(
+        name="pi0_chipotle-scoop-day2-3-4-5-subtask-p1",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi0_chipotle-scoop-day2-3-4-5-subtask-p1",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3-4-5-subtask/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        # weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_pretrain2-idpt/pi0_pretrain2-idpt/29999/params"),
+        num_train_steps=30_000,
+        keep_period=10_000,
+        batch_size=32,
+        ema_decay=0.99,
+    ),
+
+   TrainConfig(
+        name="pi05_chipotle-scoop-day2-3-4-5-subtask-p1",
+        model=pi0.Pi0Config(
+            center_crop_square=True,
+            pi05=True,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi05_chipotle-scoop-day2-3-4-5-subtask-p0",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3-4-5-subtask/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
+        # weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        # weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_pretrain2-idpt/pi0_pretrain2-idpt/29999/params"),
+        num_train_steps=15_000,
+        keep_period=10_000,
+        batch_size=32,
+        ema_decay=0.99,
     ),
     TrainConfig(
         name="pi0_fast_libero",
