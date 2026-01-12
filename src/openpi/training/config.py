@@ -1001,7 +1001,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_trossen_transfer_block",
-        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        model=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=False,
             adapt_to_pi=False,
@@ -1032,7 +1032,7 @@ _CONFIGS = [
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=20_000,
         batch_size=8,
-        freeze_filter=pi0.Pi0Config(
+        freeze_filter=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
         ).get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
@@ -1040,7 +1040,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="2025-11-13_pi0_pick_up_bread",
-        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        model=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=False,
             adapt_to_pi=False,
@@ -1074,7 +1074,7 @@ _CONFIGS = [
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
         num_train_steps=30_000,
         batch_size=8,
-        freeze_filter=pi0.Pi0Config(
+        freeze_filter=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
         ).get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
@@ -1082,7 +1082,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="2025-11-13_pi0_lettuce_sandwich",
-        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        model=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=False,
             adapt_to_pi=False,
@@ -1117,7 +1117,7 @@ _CONFIGS = [
         num_train_steps=60_000,
         keep_period=10_000, # permanently save checkpoints every 2000 steps
         batch_size=8,
-        freeze_filter=pi0.Pi0Config(
+        freeze_filter=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
         ).get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
@@ -1125,7 +1125,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_lettuce_sandwich_2p2",
-        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        model=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=False,
             adapt_to_pi=False,
@@ -1167,7 +1167,7 @@ _CONFIGS = [
         num_train_steps=60_000,
         keep_period=10_000,
         batch_size=8,
-        freeze_filter=pi0.Pi0Config(
+        freeze_filter=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
         ).get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
@@ -1175,7 +1175,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_lettuce_sandwich_2p3",
-        model=pi0.Pi0Config(),
+        model=pi0_config.Pi0Config(),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=False,
             adapt_to_pi=False,
@@ -1221,7 +1221,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_lettuce_sandwich_3p1",
-        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        model=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1259,7 +1259,7 @@ _CONFIGS = [
         num_train_steps=60_000,
         keep_period=10_000,
         batch_size=8,
-        freeze_filter=pi0.Pi0Config(
+        freeze_filter=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
         ).get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
@@ -1267,7 +1267,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_lettuce_sandwich_3p2",
-        model=pi0.Pi0Config(),
+        model=pi0_config.Pi0Config(),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1313,7 +1313,7 @@ _CONFIGS = [
         # - Right-hand-helping only episodes
         # - Full fine-tuning (no LoRA)
         name="pi0_lettuce_sandwich_4p1",
-        model=pi0.Pi0Config(),
+        model=pi0_config.Pi0Config(),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1357,7 +1357,7 @@ _CONFIGS = [
     TrainConfig(
         # Same as 4p1, but using LeRobotDataset instead of RobustLeRobotDataset
         name="pi0_lettuce_sandwich_4p1-1",
-        model=pi0.Pi0Config(),
+        model=pi0_config.Pi0Config(),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1400,7 +1400,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_lettuce_sandwich_skills_v1",
-        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        model=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1431,7 +1431,7 @@ _CONFIGS = [
         num_train_steps=60_000,
         keep_period=10_000,
         batch_size=8,
-        freeze_filter=pi0.Pi0Config(
+        freeze_filter=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
         ).get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
@@ -1439,7 +1439,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_lettuce_sandwich_skills_v1p2",
-        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        model=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1473,7 +1473,7 @@ _CONFIGS = [
         # this is necessary because this dataset has more episodes of shorter episodes
         # and so needs more workers to load the videos in parallel.
         num_workers=10,
-        freeze_filter=pi0.Pi0Config(
+        freeze_filter=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
         ).get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
@@ -1481,7 +1481,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_lettuce_sandwich_skills_v1p3",
-        model=pi0.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
+        model=pi0_config.Pi0Config(paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1516,7 +1516,7 @@ _CONFIGS = [
         # this is necessary because this dataset has more episodes of shorter episodes
         # and so needs more workers to load the videos in parallel.
         num_workers=10,
-        freeze_filter=pi0.Pi0Config(
+        freeze_filter=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", action_expert_variant="gemma_300m_lora"
         ).get_freeze_filter(),
         # Turn off EMA for LoRA finetuning.
@@ -1524,7 +1524,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_lettuce_sandwich_5p1",
-        model=pi0.Pi0Config(),
+        model=pi0_config.Pi0Config(),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1571,7 +1571,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_lettuce-sandwich-181eps-5p2",
-        model=pi0.Pi0Config(),
+        model=pi0_config.Pi0Config(),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1606,7 +1606,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_test_scooping",
-        model=pi0.Pi0Config(center_crop_square=True),
+        model=pi0_config.Pi0Config(center_crop_square=True),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1641,7 +1641,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_scooping-simple",
-        model=pi0.Pi0Config(center_crop_square=True),
+        model=pi0_config.Pi0Config(center_crop_square=True),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1676,7 +1676,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_scooping-simple-p1",
-        model=pi0.Pi0Config(center_crop_square=False),
+        model=pi0_config.Pi0Config(center_crop_square=False),
         data=LeRobotAlohaDataConfig(
             use_delta_joint_actions=True, # default
             adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
@@ -1712,7 +1712,7 @@ _CONFIGS = [
     
     TrainConfig(
         name="pi0_hi-test",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", 
             action_expert_variant="gemma_300m_lora", 
             center_crop_square=True
@@ -1744,7 +1744,7 @@ _CONFIGS = [
             ),
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
-        freeze_filter=pi0.Pi0Config(
+        freeze_filter=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", 
             action_expert_variant="gemma_300m_lora", 
             center_crop_square=True
@@ -1756,7 +1756,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_hi-test-p1",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True
             ),
         data=LeRobotAlohaDataConfig(
@@ -1794,7 +1794,7 @@ _CONFIGS = [
 
     TrainConfig(
         name="pi0_hi-test2",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", 
             action_expert_variant="gemma_300m_lora", 
             center_crop_square=True
@@ -1826,7 +1826,7 @@ _CONFIGS = [
             ),
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
-        freeze_filter=pi0.Pi0Config(
+        freeze_filter=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", 
             action_expert_variant="gemma_300m_lora", 
             center_crop_square=True
@@ -1839,7 +1839,7 @@ _CONFIGS = [
 
     TrainConfig(
         name="pi0_chipotle-scoop-day1",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             max_token_len=128,
             ),
@@ -1877,7 +1877,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_chipotle-scoop-day1-p1",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", 
             action_expert_variant="gemma_300m_lora", 
             center_crop_square=True,
@@ -1910,7 +1910,7 @@ _CONFIGS = [
             ),
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
-        freeze_filter=pi0.Pi0Config(
+        freeze_filter=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", 
             action_expert_variant="gemma_300m_lora", 
             center_crop_square=True,
@@ -1923,7 +1923,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_chipotle-scoop-day1-p2",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             max_token_len=128,
             ),
@@ -1961,7 +1961,7 @@ _CONFIGS = [
     ),
     TrainConfig(
         name="pi0_pretrain",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             max_token_len=128,
             ),
@@ -2000,7 +2000,7 @@ _CONFIGS = [
 
     TrainConfig(
         name="pi0_chipotle-scoop-day1-p3",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             max_token_len=128,
             ),
@@ -2039,7 +2039,7 @@ _CONFIGS = [
 
     TrainConfig(
         name="pi0_chipotle-scoop-day2",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             max_token_len=128,
             ),
@@ -2078,7 +2078,7 @@ _CONFIGS = [
 
     TrainConfig(
         name="pi0_chipotle-scoop-day2-3",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             max_token_len=128,
             ),
@@ -2117,7 +2117,7 @@ _CONFIGS = [
 
     TrainConfig(
         name="pi0_pretrain2",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             max_token_len=128,
             ),
@@ -2156,7 +2156,7 @@ _CONFIGS = [
 
     TrainConfig(
         name="pi0_pretrain2-idpt",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             max_token_len=128,
             ),
@@ -2203,7 +2203,7 @@ _CONFIGS = [
     
     TrainConfig(
         name="pi0_chipotle-scoop-day2-3-p0",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             max_token_len=128,
             ),
@@ -2244,7 +2244,7 @@ _CONFIGS = [
     
     TrainConfig(
         name="pi0_chipotle-scoop-day2-3-p1",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             max_token_len=128,
             ),
@@ -2284,7 +2284,7 @@ _CONFIGS = [
 
     TrainConfig(
         name="pi0_chipotle-scoop-day2-3-p2",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", 
             action_expert_variant="gemma_300m_lora", 
             center_crop_square=True,
@@ -2317,7 +2317,7 @@ _CONFIGS = [
             ),
         ),
         weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
-        freeze_filter=pi0.Pi0Config(
+        freeze_filter=pi0_config.Pi0Config(
             paligemma_variant="gemma_2b_lora", 
             action_expert_variant="gemma_300m_lora", 
             center_crop_square=True,
@@ -2332,7 +2332,7 @@ _CONFIGS = [
 
    TrainConfig(
         name="pi0_chipotle-scoop-day2-3-4-5-p0",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             max_token_len=128,
             ),
@@ -2372,7 +2372,7 @@ _CONFIGS = [
 
    TrainConfig(
         name="pi0_chipotle-scoop-day2-3-4-5-p1",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             max_token_len=128,
             ),
@@ -2412,7 +2412,7 @@ _CONFIGS = [
 
    TrainConfig(
         name="pi0_chipotle-scoop-day2-3-4-5-subtask-p0",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             ),
         data=LeRobotAlohaDataConfig(
@@ -2450,7 +2450,7 @@ _CONFIGS = [
     ),
    TrainConfig(
         name="pi0_chipotle-scoop-day2-3-4-5-subtask-p1",
-        model=pi0.Pi0Config(
+        model=pi0_config.Pi0Config(
             center_crop_square=True,
             ),
         data=LeRobotAlohaDataConfig(
