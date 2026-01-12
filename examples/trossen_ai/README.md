@@ -67,7 +67,7 @@ cd openpi
 
 
 ```bash
-XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 uv run scripts/train.py pi0_trossen_transfer_block --exp-name=my_experiment --overwrite
+XLA_PYTHON_CLIENT_MEM_FRACTION=0.9 uv run scripts/train.py pi05_trossen_organize_tools --exp-name=pi05_trossen_organize_tools --overwrite
 ```
 ## Custom Training Configuration
 
