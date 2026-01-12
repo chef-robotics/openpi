@@ -2649,7 +2649,8 @@ _CONFIGS = [
         batch_size=32,
         ema_decay=0.99,
     ),
-    # ROI crop experiment: 4 cameras + bowl ROI from top camera (5 images total)
+    # ROI crop experiment: 3 cameras + bowl ROI from top camera (4 images total)
+    # Images: top (cam_high), left wrist, right wrist, bowl ROI (cropped from top)
     TrainConfig(
         name="pi05_chipotle-scoop-day2-3-4-5-subtask-roi-p0",
         model=pi0_config.Pi0Config(
@@ -2677,7 +2678,7 @@ _CONFIGS = [
                                 "cam_high": "observation.images.cam_high",
                                 "cam_left_wrist": "observation.images.cam_left_wrist",
                                 "cam_right_wrist": "observation.images.cam_right_wrist",
-                                "cam_low": "observation.images.cam_low",
+                                # No cam_low - replaced by bowl ROI
                             },
                             "state": "observation.state",
                             "actions": "action",
