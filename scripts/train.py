@@ -274,6 +274,7 @@ def main(config: _config.TrainConfig):
         None,
         batch[0],
         train=False,
+        image_keys=list(batch[0].images.keys()),  # Include ALL images (including ROI)
         center_crop_square=config.model.center_crop_square,
     )
     images_to_log = [
