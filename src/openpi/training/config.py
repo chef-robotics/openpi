@@ -2691,7 +2691,7 @@ _CONFIGS = [
         keep_period=20_000,
         batch_size=64,
         ema_decay=0.99,
-        num_workers=48,
+        num_workers=16,
     ),
     TrainConfig(
         name="pi0_fast_libero",
