@@ -21,6 +21,23 @@ class RemoveStrings(transforms.DataTransformFn):
         return {k: v for k, v in x.items() if not np.issubdtype(np.asarray(v).dtype, np.str_)}
 
 
+class NormStatsRepackTransform(transforms.DataTransformFn):
+    """Minimal repack transform that only extracts state and actions for norm stats.
+    
+    This avoids loading images from disk since they are not needed for norm stats computation.
+    """
+    def __call__(self, data: dict) -> dict:
+        flat_item = transforms.flatten_dict(data)
+        result = {}
+        # Extract state
+        if "observation.state" in flat_item:
+            result["state"] = flat_item["observation.state"]
+        # Extract actions
+        if "action" in flat_item:
+            result["actions"] = flat_item["action"]
+        return result
+
+
 def create_torch_dataloader(
     data_config: _config.DataConfig,
     action_horizon: int,
@@ -34,8 +51,8 @@ def create_torch_dataloader(
     dataset = _data_loader.TransformedDataset(
         dataset,
         [
-            *data_config.repack_transforms.inputs,
-            *data_config.data_transforms.inputs,
+            # Use minimal repack that only extracts state and actions (skips images).
+            NormStatsRepackTransform(),
             # Remove strings since they are not supported by JAX and are not needed to compute norm stats.
             RemoveStrings(),
         ],
@@ -66,8 +83,8 @@ def create_rlds_dataloader(
     dataset = _data_loader.IterableTransformedDataset(
         dataset,
         [
-            *data_config.repack_transforms.inputs,
-            *data_config.data_transforms.inputs,
+            # Use minimal repack that only extracts state and actions (skips images).
+            NormStatsRepackTransform(),
             # Remove strings since they are not supported by JAX and are not needed to compute norm stats.
             RemoveStrings(),
         ],
