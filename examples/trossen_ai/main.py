@@ -170,7 +170,15 @@ class TrossenOpenPIBridge:
             positions = interpolator_position(current_time)
             self.execute_action(positions)
 
-    def run_episode(self, task_prompt: str = "look down", center_crop=False):
+    def run_episode(
+        self,
+        task_prompt: str = "look down",
+        center_crop: bool = False,
+        use_bowl_roi: bool = False,
+        bowl_roi_center_x: int = 330,
+        bowl_roi_center_y: int = 392,
+        bowl_roi_crop_size: int = 112,
+    ):
         """Run a single episode of policy execution."""
         logger.info(f"Starting episode with prompt: '{task_prompt}'")
         self.episode_step = 0
@@ -192,8 +200,12 @@ class TrossenOpenPIBridge:
 
                 # Transform and resize images from all cameras
                 cameras = list(self.robot._cameras_ft.keys())
+                cam_high_bgr_hwc_raw = None
                 for cam in cameras:
                     image_hwc = observation_dict[cam] # shape: (H, W, C), BGR
+                    if cam == "cam_high":
+                        # Keep a copy of the raw cam_high frame for ROI extraction (ROI coords are in original pixels).
+                        cam_high_bgr_hwc_raw = image_hwc
                     if center_crop:
                         h, w, _ = image_hwc.shape
                         crop_size = min(h, w)
@@ -208,12 +220,30 @@ class TrossenOpenPIBridge:
                     image_chw = np.transpose(image_rgb, (2, 0, 1))
                     observation_dict[cam] = image_chw
 
+                # Optionally add bowl ROI camera for ROI-trained policies.
+                # NOTE: Standard Aloha policies will error if you send unexpected cameras, so keep this gated.
+                if use_bowl_roi:
+                    if cam_high_bgr_hwc_raw is None:
+                        raise RuntimeError("cam_high image not found; cannot compute bowl ROI")
+                    roi_bgr = _extract_bowl_roi_from_cam_high_bgr(
+                        cam_high_bgr_hwc_raw,
+                        center_x=bowl_roi_center_x,
+                        center_y=bowl_roi_center_y,
+                        crop_size=bowl_roi_crop_size,
+                        out_size=224,
+                    )
+                    roi_rgb = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2RGB)
+                    roi_chw = np.transpose(roi_rgb, (2, 0, 1))
+                    observation_dict["cam_high_bowl_roi"] = roi_chw
+
                 # Create observation for policy to follow the ALOHA format
                 observation = {
                     "state": joint_positions,
                     "images": {cam: observation_dict[cam] for cam in cameras},
                     "prompt": task_prompt
                 }
+                if use_bowl_roi:
+                    observation["images"]["cam_high_bowl_roi"] = observation_dict["cam_high_bowl_roi"]
             
                 logger.info(f"Step {self.episode_step}: Requesting new action chunk")
                 response = self.policy_client.infer(observation)
