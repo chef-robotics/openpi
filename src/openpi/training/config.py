@@ -2693,6 +2693,48 @@ _CONFIGS = [
         ema_decay=0.99,
         num_workers=16,
     ),
+
+   TrainConfig(
+        name="pi05_chipotle-scoop-day2-3-4-5-6-7-8-9-p0",
+        model=pi0_config.Pi0Config(
+            center_crop_square=True,
+            pi05=True,
+            ),
+        data=LeRobotAlohaDataConfig(
+            use_delta_joint_actions=True, # default
+            adapt_to_pi=False, # because Trossen v1.0 is different from standard Aloha data
+            repo_id="sandi/pi05_chipotle-scoop-day2-3-4-5-6-7-8-9-p0",
+            base_config=DataConfig(
+                local_root="/home/inkyu/workspace/dataset/sandi/chipotle-scoop-day2-3-4-5-6-7-8-9/",
+                prompt_from_task=True,
+            ),
+            default_prompt="Prepare a Chipotle-style bowl by scooping ingredients sequentially from left to right in the following order: rice, corn, beans, chicken, lettuce, and cheese. Use the scoop to transfer one ingredient at a time into the bowl. Fully complete one ingredient before moving to the next. Avoid spilling, keep the bowl centered, and place each ingredient neatly inside the bowl.",
+            repack_transforms=_transforms.Group(
+                inputs=[
+                    _transforms.RepackTransform(
+                        {
+                            "images": {
+                                "cam_high": "observation.images.cam_high",
+                                "cam_left_wrist": "observation.images.cam_left_wrist",
+                                "cam_right_wrist": "observation.images.cam_right_wrist",
+                                "cam_low": "observation.images.cam_low",
+                            },
+                            "state": "observation.state",
+                            "actions": "action",
+                        }
+                    )
+                ]
+            ),
+        ),
+        # weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi0_base/params"),
+        weight_loader=weight_loaders.CheckpointWeightLoader("gs://openpi-assets/checkpoints/pi05_base/params"),
+        # weight_loader=weight_loaders.CheckpointWeightLoader("/home/inkyu/ChefResearch/sandi/third_party/openpi/checkpoints/pi0_pretrain2-idpt/pi0_pretrain2-idpt/29999/params"),
+        num_train_steps=350_000,
+        keep_period=20_000,
+        batch_size=128,
+        ema_decay=0.99,
+        num_workers=16,
+    ),
     TrainConfig(
         name="pi0_fast_libero",
         # Here is an example of loading a pi0-FAST model for full finetuning.
