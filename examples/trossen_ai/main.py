@@ -36,6 +36,31 @@ from lerobot_robot_trossen.config_bi_widowxai_follower import BiWidowXAIFollower
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+def _extract_bowl_roi_from_cam_high_bgr(
+    cam_high_bgr_hwc: np.ndarray,
+    *,
+    center_x: int = 330,
+    center_y: int = 392,
+    crop_size: int = 112,
+    out_size: int = 224,
+) -> np.ndarray:
+    """Extract bowl ROI from cam_high (BGR, HWC) and return ROI (BGR, HWC) resized to out_size."""
+    if cam_high_bgr_hwc.ndim != 3:
+        raise ValueError(f"Expected HWC image, got shape {cam_high_bgr_hwc.shape}")
+    h, w = cam_high_bgr_hwc.shape[:2]
+    half = crop_size // 2
+    x1 = max(0, center_x - half)
+    y1 = max(0, center_y - half)
+    x2 = min(w, x1 + crop_size)
+    y2 = min(h, y1 + crop_size)
+    # Adjust if crop goes out of bounds
+    if x2 - x1 < crop_size:
+        x1 = max(0, x2 - crop_size)
+    if y2 - y1 < crop_size:
+        y1 = max(0, y2 - crop_size)
+    cropped = cam_high_bgr_hwc[y1:y2, x1:x2]
+    return cv2.resize(cropped, (out_size, out_size), interpolation=cv2.INTER_LINEAR)
+
 
 
 class TrossenOpenPIBridge:
