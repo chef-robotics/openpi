@@ -315,6 +315,14 @@ if __name__ == "__main__":
                         help="Operation mode: autonomous (execute) or test (no movement)")
     parser.add_argument("--task_prompt", default="move the arm to the left", help="Task description for the policy")
     parser.add_argument("--max_steps", type=int, default=3600, help="Maximum steps per episode")
+    parser.add_argument(
+        "--use_bowl_roi",
+        action="store_true",
+        help="If set, add cam_high_bowl_roi (cropped from cam_high) for ROI-trained chipotle scoop policies.",
+    )
+    parser.add_argument("--bowl_roi_center_x", type=int, default=330)
+    parser.add_argument("--bowl_roi_center_y", type=int, default=392)
+    parser.add_argument("--bowl_roi_crop_size", type=int, default=112)
     args = parser.parse_args()
 
     bridge = TrossenOpenPIBridge(
@@ -326,7 +334,14 @@ if __name__ == "__main__":
     )
 
     try:
-        bridge.autonomous_mode(task_prompt=args.task_prompt)
+        bridge.run_episode(
+            task_prompt=args.task_prompt,
+            center_crop=True,
+            use_bowl_roi=args.use_bowl_roi,
+            bowl_roi_center_x=args.bowl_roi_center_x,
+            bowl_roi_center_y=args.bowl_roi_center_y,
+            bowl_roi_crop_size=args.bowl_roi_crop_size,
+        )
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt detected. Cleaning up...")
     except Exception as e:
