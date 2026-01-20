@@ -367,11 +367,11 @@ class TrossenOpenPIBridge:
         # Reset RTC scheduler if enabled
         if self.rtc_scheduler is not None:
             self.rtc_scheduler.reset()
-            self._run_episode_rtc(task_prompt, is_first_step)
+            self._run_episode_rtc(task_prompt, is_first_step, center_crop)
         else:
-            self._run_episode_standard(task_prompt, is_first_step)
+            self._run_episode_standard(task_prompt, is_first_step, center_crop)
 
-    def _run_episode_standard(self, task_prompt: str, is_first_step: bool):
+    def _run_episode_standard(self, task_prompt: str, is_first_step: bool, center_crop: bool = False):
         """Standard episode execution without RTC."""
         while self.is_running and self.episode_step < self.max_steps:
             start_loop_time = time.perf_counter()
@@ -425,7 +425,7 @@ class TrossenOpenPIBridge:
         self.is_running = False
         logger.info(f"Episode completed after {self.episode_step} steps")
 
-    def _run_episode_rtc(self, task_prompt: str, is_first_step: bool):
+    def _run_episode_rtc(self, task_prompt: str, is_first_step: bool, center_crop: bool = False):
         """
         Episode execution with Real-Time Chunking (RTC) for smoother transitions.
         
@@ -449,7 +449,7 @@ class TrossenOpenPIBridge:
                 logger.info("Server supports native RTC inpainting (Pi0 flow-based)")
         
         # Get initial chunk
-        observation = self._get_observation_for_policy(task_prompt)
+        observation = self._get_observation_for_policy(task_prompt, center_crop=center_crop)
         logger.info(f"Step {self.episode_step}: Requesting initial action chunk")
         response = self.policy_client.infer(observation)
         
@@ -477,7 +477,7 @@ class TrossenOpenPIBridge:
             
             # Start inference for next chunk if needed
             if needs_new_chunk:
-                observation = self._get_observation_for_policy(task_prompt)
+                observation = self._get_observation_for_policy(task_prompt, center_crop=center_crop)
                 logger.info(f"Step {self.episode_step}: Pre-fetching next action chunk (RTC)")
                 
                 # If server supports RTC, send action prefix for inpainting
