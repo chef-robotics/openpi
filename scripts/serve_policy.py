@@ -49,7 +49,7 @@ class Args:
     # Port to serve the policy on.
     port: int = 8000
     # Record the policy's behavior for debugging.
-    record: bool = False
+    record: bool = True
 
     # Specifies how to load the policy. If not provided, the default policy for the environment will be used.
     policy: Checkpoint | Default = dataclasses.field(default_factory=Default)
