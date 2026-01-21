@@ -274,6 +274,138 @@ class ExtractROI(DataTransformFn):
         return data
 
 
+@dataclasses.dataclass
+class ExtractROIWithDetection(DataTransformFn):
+    """Extract a Region of Interest (ROI) using bowl detection.
+    
+    Uses a Hough Circle-based bowl detector to find the bowl center dynamically.
+    Caches detection results per episode for efficiency.
+    
+    Args:
+        source_key: Source image key to crop from
+        target_key: Target image key to add
+        crop_size: Size of the square crop around detected center
+        output_size: Output size after resize
+        fallback_center: (x, y) center to use if detection fails
+        cache_detection: If True, cache detection per episode_index
+        min_confidence: Minimum confidence threshold for detection
+    """
+    source_key: str
+    target_key: str
+    crop_size: int = 112
+    output_size: int = 224
+    fallback_center: tuple[int, int] = (326, 406)
+    cache_detection: bool = True
+    min_confidence: float = 0.3
+    
+    # Detection cache: episode_index -> (center_x, center_y)
+    _detection_cache: dict = dataclasses.field(default_factory=dict, repr=False)
+    _detector: object = dataclasses.field(default=None, repr=False, init=False)
+    
+    def __post_init__(self):
+        # Lazy load detector to avoid import issues
+        object.__setattr__(self, '_detection_cache', {})
+    
+    def _get_detector(self):
+        """Lazy load the bowl detector."""
+        if self._detector is None:
+            try:
+                from openpi.shared.bowl_detector import BowlDetector
+                object.__setattr__(self, '_detector', BowlDetector())
+            except ImportError:
+                import warnings
+                warnings.warn("Bowl detector not available, using fallback center")
+                return None
+        return self._detector
+    
+    def _detect_bowl(self, image: np.ndarray, episode_index: int | None = None) -> tuple[int, int]:
+        """Detect bowl center, with caching per episode."""
+        # Check cache first
+        if self.cache_detection and episode_index is not None:
+            if episode_index in self._detection_cache:
+                return self._detection_cache[episode_index]
+        
+        detector = self._get_detector()
+        if detector is None:
+            return self.fallback_center
+        
+        # Ensure image is in BGR format for OpenCV
+        if image.dtype != np.uint8:
+            image = (image * 255).astype(np.uint8) if image.max() <= 1 else image.astype(np.uint8)
+        
+        # Detect bowl
+        detection = detector.detect(image)
+        
+        if detection is not None and detection.confidence >= self.min_confidence:
+            center = (detection.center_x, detection.center_y)
+        else:
+            center = self.fallback_center
+        
+        # Cache result
+        if self.cache_detection and episode_index is not None:
+            self._detection_cache[episode_index] = center
+        
+        return center
+
+    def __call__(self, data: DataDict) -> DataDict:
+        if "images" not in data:
+            return data
+        
+        if self.source_key not in data["images"]:
+            raise ValueError(f"Source image key '{self.source_key}' not found in data['images']")
+        
+        source_image = np.asarray(data["images"][self.source_key])
+        
+        # Get episode index for caching (if available)
+        episode_index = data.get("episode_index", None)
+        if episode_index is not None:
+            episode_index = int(episode_index)
+        
+        # Detect if image is in [C, H, W] or [H, W, C] format
+        is_chw = source_image.shape[0] in (3, 4) and source_image.shape[0] < source_image.shape[1]
+        
+        if is_chw:
+            source_image = np.transpose(source_image, (1, 2, 0))
+        
+        # Detect bowl center
+        center_x, center_y = self._detect_bowl(source_image, episode_index)
+        
+        h, w = source_image.shape[:2]
+        
+        # Calculate crop boundaries
+        half_crop = self.crop_size // 2
+        x1 = max(0, center_x - half_crop)
+        y1 = max(0, center_y - half_crop)
+        x2 = min(w, x1 + self.crop_size)
+        y2 = min(h, y1 + self.crop_size)
+        
+        # Adjust if crop goes out of bounds
+        if x2 - x1 < self.crop_size:
+            x1 = max(0, x2 - self.crop_size)
+        if y2 - y1 < self.crop_size:
+            y1 = max(0, y2 - self.crop_size)
+        
+        # Crop the region
+        cropped = source_image[y1:y2, x1:x2]
+        
+        # Resize to output size
+        import cv2
+        resized = cv2.resize(cropped, (self.output_size, self.output_size), interpolation=cv2.INTER_LINEAR)
+        
+        # Convert back to original format if needed
+        if is_chw:
+            resized = np.transpose(resized, (2, 0, 1))
+        
+        # Add the new image to the data
+        data["images"][self.target_key] = resized
+        
+        return data
+    
+    def clear_cache(self):
+        """Clear the detection cache."""
+        self._detection_cache.clear()
+
+
 @dataclasses.dataclass(frozen=True)
 class SubsampleActions(DataTransformFn):
     stride: int

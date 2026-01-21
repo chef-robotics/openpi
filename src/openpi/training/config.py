@@ -298,10 +298,15 @@ class LeRobotAlohaDataConfigWithROI(DataConfigFactory):
     adapt_to_pi: bool = True
     
     # ROI extraction parameters
-    roi_center_x: int = 330  # Center X of crop in original image
-    roi_center_y: int = 392  # Center Y of crop in original image
+    roi_center_x: int = 330  # Center X of crop in original image (fallback)
+    roi_center_y: int = 392  # Center Y of crop in original image (fallback)
     roi_crop_size: int = 112  # Size of the square crop
     roi_output_size: int = 224  # Output size after resize (2x)
+    
+    # Bowl detection options
+    use_bowl_detection: bool = False  # If True, use dynamic bowl detection instead of static center
+    bowl_detection_cache: bool = True  # Cache detection per episode (recommended)
+    bowl_detection_min_confidence: float = 0.3  # Minimum confidence for detection
     
     repack_transforms: tyro.conf.Suppress[_transforms.Group] = dataclasses.field(
         default=_transforms.Group(
@@ -326,16 +331,29 @@ class LeRobotAlohaDataConfigWithROI(DataConfigFactory):
     @override
     def create(self, assets_dirs: pathlib.Path, model_config: _model.BaseModelConfig) -> DataConfig:
         # Add ROI extraction to repack transforms
-        roi_transform = _transforms.ExtractROI(
-            source_key="cam_high",
-            target_key="cam_high_bowl_roi",
-            center_x=self.roi_center_x,
-            center_y=self.roi_center_y,
-            crop_width=self.roi_crop_size,
-            crop_height=self.roi_crop_size,
-            output_width=self.roi_output_size,
-            output_height=self.roi_output_size,
-        )
+        if self.use_bowl_detection:
+            # Use dynamic bowl detection
+            roi_transform = _transforms.ExtractROIWithDetection(
+                source_key="cam_high",
+                target_key="cam_high_bowl_roi",
+                crop_size=self.roi_crop_size,
+                output_size=self.roi_output_size,
+                fallback_center=(self.roi_center_x, self.roi_center_y),
+                cache_detection=self.bowl_detection_cache,
+                min_confidence=self.bowl_detection_min_confidence,
+            )
+        else:
+            # Use static center (original behavior)
+            roi_transform = _transforms.ExtractROI(
+                source_key="cam_high",
+                target_key="cam_high_bowl_roi",
+                center_x=self.roi_center_x,
+                center_y=self.roi_center_y,
+                crop_width=self.roi_crop_size,
+                crop_height=self.roi_crop_size,
+                output_width=self.roi_output_size,
+                output_height=self.roi_output_size,
+            )
         repack_with_roi = _transforms.Group(
             inputs=[*self.repack_transforms.inputs, roi_transform]
         )
